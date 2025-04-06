@@ -1,141 +1,178 @@
 #!/bin/bash
 
-echo "Running tests..."
+# Test encoding and decoding with valid files
 
-# Test 1: Run with a 20x10 grid, 5 generations (expected Rule 18)
-echo "Test 1: Running with 20x10 grid, 5 generations"
-output=$(./bin/game_of_life 20 10 5)
-expected_output="Rule 18"
-if echo "$output" | grep -q "$expected_output"; then
-  echo "Pass: Output contains Rule 18"
-else
-  echo "Fail: Expected Rule 18, but got:"
-  echo "$output"
-  exit 1
-fi
+# Create a sample PPM image for testing
+echo "P3
+3 2
+255
+255 0 0
+0 255 0
+0 0 255
+255 255 0
+255 255 255
+0 0 0" > test_input.ppm
 
-# Test 2: Run with a 30x15 grid, 10 generations (expected Rule 57)
-echo "Test 2: Running with 30x15 grid, 10 generations"
-output=$(./bin/game_of_life 30 15 10)
-expected_output="Rule 57"
-if echo "$output" | grep -q "$expected_output"; then
-  echo "Pass: Output contains Rule 57"
-else
-  echo "Fail: Expected Rule 57, but got:"
-  echo "$output"
-  exit 1
-fi
+# Create a sample payload for testing
+echo "This is a secret message" > test_payload.txt
 
-# Test 3: Run with a 50x25 grid, 15 generations (expected Rule 60)
-echo "Test 3: Running with 50x25 grid, 15 generations"
-output=$(./bin/game_of_life 50 25 15)
-expected_output="Rule 60"
-if echo "$output" | grep -q "$expected_output"; then
-  echo "Pass: Output contains Rule 60"
-else
-  echo "Fail: Expected Rule 60, but got:"
-  echo "$output"
-  exit 1
-fi
-
-# Test 4: Run with a 100x50 grid, 20 generations (expected Rule 73)
-echo "Test 4: Running with 100x50 grid, 20 generations"
-output=$(./bin/game_of_life 100 50 20)
-expected_output="Rule 73"
-if echo "$output" | grep -q "$expected_output"; then
-  echo "Pass: Output contains Rule 73"
-else
-  echo "Fail: Expected Rule 73, but got:"
-  echo "$output"
-  exit 1
-fi
-
-# Test 5: Ensure the program fails with invalid input (negative grid size)
-echo "Test 5: Running with invalid input (negative grid size)"
-output=$(./bin/game_of_life -20 10 5)
-if [ $? -eq 1 ]; then
-  echo "Pass: Program exited with error due to invalid input"
-else
-  echo "Fail: Program should have exited with an error"
-  exit 1
-fi
-
-# Test 6: Ensure the program fails with non-numeric input
-echo "Test 6: Running with non-numeric input"
-output=$(./bin/game_of_life abc def ghi)
-if [ $? -eq 1 ]; then
-  echo "Pass: Program exited with error due to non-numeric input"
-else
-  echo "Fail: Program should have exited with an error"
-  exit 1
-fi
-
-# Test 7: Run with the smallest grid (1x1) and 5 generations (expected Rule 18)
-echo "Test 7: Running with a 1x1 grid, 5 generations"
-output=$(./bin/game_of_life 1 1 5)
-expected_output="Rule 18"
-if echo "$output" | grep -q "$expected_output"; then
-  echo "Pass: Output contains Rule 18"
-else
-  echo "Fail: Expected Rule 18, but got:"
-  echo "$output"
-  exit 1
-fi
-
-# Test 8: Run with a 2x2 grid, 5 generations (expected Rule 18 or Rule 57)
-echo "Test 8: Running with a 2x2 grid, 5 generations"
-output=$(./bin/game_of_life 2 2 5)
-# Either Rule 18 or Rule 57 can be expected due to limited grid, check for both
-if echo "$output" | grep -q "Rule 18" || echo "$output" | grep -q "Rule 57"; then
-  echo "Pass: Output contains expected rule"
-else
-  echo "Fail: Expected Rule 18 or Rule 57, but got:"
-  echo "$output"
-  exit 1
-fi
-
-# Test 9: Ensure the program handles maximum grid size (e.g., 1000x1000) correctly
-echo "Test 9: Running with a 1000x1000 grid, 1 generation"
-output=$(./bin/game_of_life 1000 1000 1)
+# Test encoding (normal case)
+echo "Running encoding test with a text payload..."
+./steganography encode test_input.ppm test_payload.txt test_encoded.ppm
 if [ $? -eq 0 ]; then
-  echo "Pass: Program handled maximum grid size (1000x1000) correctly"
+    echo "Encoding test passed."
 else
-  echo "Fail: Program failed with maximum grid size"
-  exit 1
+    echo "Encoding test failed."
 fi
 
-# Test 10: Run with a large grid and print only the first 10 rows (to prevent output overflow)
-echo "Test 10: Running with a 100x100 grid, 50 generations, printing first 10 rows"
-output=$(./bin/game_of_life 100 100 50)
-echo "$output" | head -n 10
-echo "Pass: Successfully printed first 10 rows of a large grid"
-
-# Test 11: Ensure the program handles edge case with very large number of generations (e.g., 100 generations)
-echo "Test 11: Running with a 20x10 grid, 100 generations"
-output=$(./bin/game_of_life 20 10 100)
+# Test decoding (normal case)
+echo "Running decoding test with a text payload..."
+./steganography decode test_encoded.ppm test_decoded.txt
 if [ $? -eq 0 ]; then
-  echo "Pass: Program handled large number of generations (100 generations)"
+    echo "Decoding test passed."
 else
-  echo "Fail: Program failed with 100 generations"
-  exit 1
+    echo "Decoding test failed."
 fi
 
-# Test 12: Run with a grid where every second cell is initially true (checking patterns in rule evolution)
-echo "Test 12: Running with 20x10 grid, every second cell initially true"
-output=$(./bin/game_of_life 20 10 5)
-# Output check may need to check for specific patterns based on the rule
-echo "$output" | grep "X" && echo "Pass: Non-empty cells exist in output"
-
-# Test 13: Run with edge case of all cells initially false (1xN or Nx1 grid)
-echo "Test 13: Running with 1x100 grid, 10 generations"
-output=$(./bin/game_of_life 1 100 10)
-if echo "$output" | grep -q "."; then
-  echo "Pass: Output has only empty cells (no 'X')"
+# Check if the decoded message is correct
+echo "Verifying decoded text payload..."
+if cmp -s test_payload.txt test_decoded.txt; then
+    echo "Payload match: Decoding successful!"
 else
-  echo "Fail: Unexpected non-empty cells in 1x100 grid"
-  exit 1
+    echo "Decoded message does not match payload!"
 fi
 
-echo "All tests passed."
+# Test with a larger payload (text)
+echo "Running encoding test with a larger text payload..."
+echo "This is a much longer message to test the encoding and decoding capabilities of the steganography program. It will test if the program can handle payloads that are much larger than the original example." > large_payload.txt
+./steganography encode test_input.ppm large_payload.txt test_encoded_large.ppm
+if [ $? -eq 0 ]; then
+    echo "Large encoding test passed."
+else
+    echo "Large encoding test failed."
+fi
 
-exit 0
+# Test decoding of larger payload (text)
+echo "Running decoding test with a larger text payload..."
+./steganography decode test_encoded_large.ppm test_decoded_large.txt
+if [ $? -eq 0 ]; then
+    echo "Large decoding test passed."
+else
+    echo "Large decoding test failed."
+fi
+
+# Check if the decoded message is correct (large)
+echo "Verifying decoded large text payload..."
+if cmp -s large_payload.txt test_decoded_large.txt; then
+    echo "Large payload match: Decoding successful!"
+else
+    echo "Decoded large message does not match payload!"
+fi
+
+# Test with binary payload
+echo "Running encoding test with a binary payload..."
+echo -n -e '\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A' > test_payload_bin.bin
+./steganography encode test_input.ppm test_payload_bin.bin test_encoded_bin.ppm
+if [ $? -eq 0 ]; then
+    echo "Binary encoding test passed."
+else
+    echo "Binary encoding test failed."
+fi
+
+# Test decoding of binary payload
+echo "Running decoding test with a binary payload..."
+./steganography decode test_encoded_bin.ppm test_decoded_bin.bin
+if [ $? -eq 0 ]; then
+    echo "Binary decoding test passed."
+else
+    echo "Binary decoding test failed."
+fi
+
+# Check if the binary payloads match
+echo "Verifying decoded binary payload..."
+if cmp -s test_payload_bin.bin test_decoded_bin.bin; then
+    echo "Binary payload match: Decoding successful!"
+else
+    echo "Decoded binary payload does not match the original!"
+fi
+
+# Test with too large of a payload
+echo "Running test with a payload that exceeds the PPM capacity..."
+dd if=/dev/urandom of=too_large_payload.bin bs=1024 count=1 2>/dev/null
+./steganography encode test_input.ppm too_large_payload.bin test_encoded_overflow.ppm
+if [ $? -eq 0 ]; then
+    echo "Overflow test passed, this is an error case, it should fail."
+else
+    echo "Overflow test failed as expected (error handling works)."
+fi
+
+# Test for invalid file type during encoding
+echo "Running encoding test with an invalid PPM format..."
+echo "P4" > invalid_ppm.ppm
+echo "3 2" >> invalid_ppm.ppm
+echo "255" >> invalid_ppm.ppm
+echo "255 0 0" >> invalid_ppm.ppm
+echo "0 255 0" >> invalid_ppm.ppm
+echo "0 0 255" >> invalid_ppm.ppm
+./steganography encode invalid_ppm.ppm test_payload.txt test_encoded_invalid.ppm
+if [ $? -ne 0 ]; then
+    echo "Invalid PPM format correctly caught by encoding."
+else
+    echo "Invalid PPM format test failed."
+fi
+
+# Test for the same filename for input, payload, and output (encode)
+echo "Running test where input, payload, and output filenames are the same..."
+./steganography encode test_input.ppm test_payload.txt test_input.ppm
+if [ $? -ne 0 ]; then
+    echo "Correctly detected same filenames for encoding."
+else
+    echo "Error: Same filenames not detected during encoding."
+fi
+
+# Test for the same filename for input and output (decode)
+echo "Running test where input and output filenames are the same (decode)..."
+./steganography decode test_encoded.ppm test_encoded.ppm
+if [ $? -ne 0 ]; then
+    echo "Correctly detected same filenames for decoding."
+else
+    echo "Error: Same filenames not detected during decoding."
+fi
+
+# Test with a different image size (larger image)
+echo "Running encoding with a larger PPM image..."
+echo "P3
+5 5
+255
+255 0 0 0 255 0 0 0 255 255 255 0 0 0 255 255 255 0 255 0 255 255 255 255 0 255 255
+" > large_input.ppm
+./steganography encode large_input.ppm test_payload.txt test_encoded_large_input.ppm
+if [ $? -eq 0 ]; then
+    echo "Large image encoding test passed."
+else
+    echo "Large image encoding test failed."
+fi
+
+# Test with non-printable characters in the payload
+echo "Running test with non-printable characters in the payload..."
+echo -n -e '\x00\x01\x02\x03\x04' > non_printable_payload.bin
+./steganography encode test_input.ppm non_printable_payload.bin test_encoded_non_printable.ppm
+if [ $? -eq 0 ]; then
+    echo "Non-printable encoding test passed."
+else
+    echo "Non-printable encoding test failed."
+fi
+
+# Test for decoding non-printable payload
+echo "Running decoding test with non-printable payload..."
+./steganography decode test_encoded_non_printable.ppm test_decoded_non_printable.bin
+if [ $? -eq 0 ]; then
+    echo "Non-printable decoding test passed."
+else
+    echo "Non-printable decoding test failed."
+fi
+
+# Clean up
+rm test_input.ppm test_payload.txt test_encoded.ppm test_decoded.txt large_payload.txt test_encoded_large.ppm test_decoded_large.txt test_payload_bin.bin test_encoded_bin.ppm test_decoded_bin.bin test_encoded_large_input.ppm invalid_ppm.ppm test_encoded_invalid.ppm test_encoded_overflow.ppm test_encoded_non_printable.ppm test_decoded_non_printable.bin
+
+echo "All tests completed."
