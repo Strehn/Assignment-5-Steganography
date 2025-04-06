@@ -1,45 +1,46 @@
+# Set compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -g
-LDFLAGS = 
-EXEC = bin/game_of_life
+CFLAGS = -Wall -Wextra -pedantic -g
+LDFLAGS =
 
-# Source files
-SRC = src/main.c src/picture.c src/rules.c src/arrays.c
+# Set project name
+TARGET = steganography
+
+# List of source files
+SRC = src/main.c src/steganography.c src/ppm.c src/utils.c
+
+# List of object files (based on source files)
 OBJ = $(SRC:.c=.o)
 
-# Directories
-OBJ_DIR = obj
-BIN_DIR = bin
+# Define the directory structure
+BUILD_DIR = build
 SRC_DIR = src
-TEST_SCRIPT = test.sh
+BIN_DIR = bin
 
-# Targets
+# Default target
+all: $(BIN_DIR)/$(TARGET)
 
-# Default target to build everything
-all: $(EXEC)
-
-# Compile the game_of_life executable
-$(EXEC): $(OBJ)
+# Link the target
+$(BIN_DIR)/$(TARGET): $(OBJ)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(OBJ) -o $(EXEC) $(LDFLAGS)
+	$(CC) $(OBJ) -o $(BIN_DIR)/$(TARGET) $(LDFLAGS)
 
-# Compile source files into object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+# Compile the source files
+$(SRC_DIR)/*.c.o:
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $(BUILD_DIR)/$(@F)
 
-# Clean up object files and the executable
+# Clean the project
 clean:
-	rm -rf $(OBJ_DIR) $(BIN_DIR)
-	rm -f $(EXEC)
+	rm -rf $(BIN_DIR) $(BUILD_DIR)
 
-# Run the tests using the test.sh script
-test: $(EXEC)
-	@echo "Running tests..."
-	./$(TEST_SCRIPT)
+# Run the program
+run: $(BIN_DIR)/$(TARGET)
+	./$(BIN_DIR)/$(TARGET)
 
-# Ensure the program is built before running tests
-build: $(EXEC)
+# Test the program
+test: $(BIN_DIR)/$(TARGET)
+	./test.sh
 
-# Phony targets (these don't represent real files)
-.PHONY: all clean test build
+# Phony targets (not real files)
+.PHONY: all clean run test
